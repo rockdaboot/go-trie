@@ -9,7 +9,7 @@ import (
 	"github.com/rockdaboot/go-trie/trie"
 )
 
-func Test_buildArrays(t *testing.T) {
+func Test_BuildStacks(t *testing.T) {
 	tests := []struct {
 		name   string
 		stacks [][]string
