@@ -1,0 +1,83 @@
+name: Go-Trie
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    steps:
+    - name: Set up Go ${{matrix.go}}
+      uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+      with:
+        go-version: ${{matrix.go}}
+        check-latest: true
+      id: go
+    - name: Check out
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Linter
+      run: |
+          make lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    steps:
+    - name: Set up Go ${{matrix.go}}
+      uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+      with:
+        go-version: ${{matrix.go}}
+        check-latest: true
+      id: go
+    - name: Check out
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Run Test
+      run: |
+          make test
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    permissions:
+      contents: write
+    steps:
+      - name: Set up Go ${{matrix.go}}
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version: ${{matrix.go}}
+          check-latest: true
+        id: go
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Build
+        run: |
+          go install
+      - name: Run Coverage
+        run: |
+          go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
+
+      - name: Report Coveralls
+        run: curl -sL https://coveralls.io/coveralls-linux.tar.gz | tar -xz && ./coveralls report coverage.out --format=golang
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
