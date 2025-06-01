@@ -1,10 +1,12 @@
-package trie
+package trie_test
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/rockdaboot/go-trie/trie"
 )
 
 func Test_buildArrays(t *testing.T) {
@@ -47,11 +49,14 @@ func Test_buildArrays(t *testing.T) {
 			},
 		},
 	}
+
+	t.Parallel()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data := NewFromStacks(tt.stacks)
+			t.Parallel()
+			data := trie.NewFromStacks(tt.stacks)
 			locationTable, stackParentArray, stackLocationIndex, stackIndex := data.ToArrays()
-			stacks := BuildStacks(locationTable, stackParentArray, stackLocationIndex, stackIndex)
+			stacks := trie.BuildStacks(locationTable, stackParentArray, stackLocationIndex, stackIndex)
 			if tt.want == nil {
 				tt.want = tt.stacks
 			}

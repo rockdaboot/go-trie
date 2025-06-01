@@ -1,3 +1,5 @@
+// Package main demonstrates the usage of the trie package to efficiently store,
+// manipulate, and reconstruct stack traces using a trie data structure.
 package main
 
 import (

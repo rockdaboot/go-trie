@@ -1,9 +1,14 @@
+// Package trie provides functionality to efficiently store and manipulate stack traces
+// using a trie data structure.
+// It supports operations such as adding stack traces, converting the trie to arrays,
+// and reconstructing stacks from arrays.
 package trie
 
 import (
 	"strings"
 )
 
+// Trie is a data structure that stores unique stack traces and their relationships.
 type Trie struct {
 	uniqueStacks    map[string]stackData
 	uniqueLocations map[string]int
@@ -12,6 +17,7 @@ type Trie struct {
 	rootID          string
 }
 
+// New creates a new Trie instance. It initializes the trie with an artificial root frame.
 func New() *Trie {
 	trie := Trie{
 		uniqueStacks:    make(map[string]stackData),
@@ -28,6 +34,7 @@ func New() *Trie {
 	return &trie
 }
 
+// NewFromStacks creates a new Trie instance from a slice of stack traces.
 func NewFromStacks(stacks [][]string) *Trie {
 	trie := New()
 	for _, stack := range stacks {
@@ -38,6 +45,7 @@ func NewFromStacks(stacks [][]string) *Trie {
 	return trie
 }
 
+// Len returns the number of added unique stacks in the trie plus one for the artificial root frame.
 func (t *Trie) Len() int {
 	return len(t.uniqueStacks)
 }
@@ -50,6 +58,7 @@ func (t *Trie) Index(stack []string) int {
 	return -1
 }
 
+// Exists checks if a stack trace exists in the trie.
 func (t *Trie) Exists(stack []string) bool {
 	_, ok := t.uniqueStacks[mkStackID(stack)]
 	return ok
@@ -85,7 +94,9 @@ func (t *Trie) AddStack(stack []string) int {
 	return index
 }
 
-func (t *Trie) ToArrays() (locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) {
+// ToArrays converts the trie to arrays that can be used for further processing.
+func (t *Trie) ToArrays() (locationTable []Location,
+	stackParentArray, stackLocationIndex, stackIndex []int) {
 	// Create the location table with a single allocation.
 	locationTable = make([]Location, len(t.uniqueLocations))
 	for name, idx := range t.uniqueLocations {
@@ -105,12 +116,11 @@ func (t *Trie) ToArrays() (locationTable []Location, stackParentArray []int, sta
 		}
 	}
 
-	stackIndex = t.stackIndex
-
-	return
+	return locationTable, stackParentArray, stackLocationIndex, t.stackIndex
 }
 
-func (t *Trie) LeafIndices() []int {
+// Indices returns the indices of the added stacks in the trie.
+func (t *Trie) Indices() []int {
 	return t.stackIndex
 }
 
@@ -125,66 +135,10 @@ type stackData struct {
 	locationIdx    int
 }
 
-func BuildArrays(stacks [][]string) (locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) {
-	uniqueStacks := make(map[string]stackData)
-	uniqueLocations := make(map[string]int)
-
-	// Add an artificial root frame.
-	uniqueLocations[""] = 0
-	rootID := mkStackID([]string{""})
-	uniqueStacks[rootID] = stackData{parentStackID: "", parentArrayIdx: 0, locationIdx: 0}
-
-	for _, stack := range stacks {
-		parentStackID := rootID
-		for i := len(stack) - 1; i >= 0; i-- {
-			stackID := mkStackID(stack[i:])
-			index, ok := uniqueStacks[stackID]
-			if !ok {
-				index.parentArrayIdx = len(uniqueStacks)
-				index.locationIdx, ok = uniqueLocations[stack[i]]
-				if !ok {
-					index.locationIdx = len(uniqueLocations)
-					uniqueLocations[stack[i]] = index.locationIdx
-				}
-				index.parentStackID = parentStackID
-				uniqueStacks[stackID] = index
-			}
-			parentStackID = stackID
-		}
-	}
-
-	// Create the location table with a single allocation.
-	locationTable = make([]Location, len(uniqueLocations))
-	for name, idx := range uniqueLocations {
-		locationTable[idx] = Location{name: name}
-	}
-
-	// Create the stack arrays, each with a single allocation.
-	stackLocationIndex = make([]int, len(uniqueStacks))
-	stackParentArray = make([]int, len(uniqueStacks))
-	for _, v := range uniqueStacks {
-		stackLocationIndex[v.parentArrayIdx] = v.locationIdx
-		if v.locationIdx == 0 {
-			stackParentArray[v.parentArrayIdx] = 0
-		} else {
-			parentStackTrace := uniqueStacks[v.parentStackID]
-			stackParentArray[v.parentArrayIdx] = parentStackTrace.parentArrayIdx
-		}
-	}
-
-	// Keep track of the leaf frames, allows reconstructing the input stacks.
-	stackIndex = make([]int, len(stacks))
-	for i, stack := range stacks {
-		stackIndex[i] = uniqueStacks[mkStackID(stack)].parentArrayIdx
-	}
-
-	return
-}
-
 // mkStackID creates a unique ID for a stack trace.
 func mkStackID(stack []string) string {
 	var builder strings.Builder
-	for i := 0; i < len(stack); i++ {
+	for i := range stack {
 		builder.WriteString(stack[i])
 		builder.WriteString("|")
 	}
@@ -192,7 +146,8 @@ func mkStackID(stack []string) string {
 }
 
 // BuildStacks reconstructs the stacks from the arrays.
-func BuildStacks(locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) [][]string {
+func BuildStacks(locationTable []Location, stackParentArray []int, stackLocationIndex []int,
+	stackIndex []int) [][]string {
 	stacks := make([][]string, len(stackIndex))
 	for stackIdx, i := range stackIndex {
 		stack := make([]string, 0)
