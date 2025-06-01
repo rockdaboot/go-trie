@@ -37,12 +37,25 @@ func New[T comparable]() *Trie[T] {
 }
 
 // NewFromStacks creates a new Trie instance from a slice of stack traces.
+// Duplicate stacks are not de-duplicated, so the trie will contain all stacks as they are.
 func NewFromStacks[T comparable](stacks [][]T) *Trie[T] {
 	trie := New[T]()
 	for _, stack := range stacks {
 		// Add the stack trace to the trie.
 		// The leaf frame is at position 0, so we add the stack in natural order.
 		trie.AddStack(stack)
+	}
+	return trie
+}
+
+// NewFromUniqueStacks creates a new Trie instance from a slice of stack traces.
+// Duplicate stacks are effectively ignored (de-duplicated).
+func NewFromUniqueStacks[T comparable](stacks [][]T) *Trie[T] {
+	trie := New[T]()
+	for _, stack := range stacks {
+		// Add the stack trace to the trie.
+		// The leaf frame is at position 0, so we add the stack in natural order.
+		trie.AddStackIfNew(stack)
 	}
 	return trie
 }
@@ -70,10 +83,23 @@ func (t *Trie[T]) Exists(stack []T) bool {
 // natural order, meaning the leaf frame is at position 0.
 func (t *Trie[T]) AddStack(stack []T) int {
 	stackID := mkStackID(stack)
+	return t.addStack(stack, stackID)
+}
+
+// AddStackIfNew adds a stack trace to the trie only if it does not exist yet.
+// The stack trace is expected to have the leaf frame at position 0.
+// It returns the index of the stack in the trie and a boolean indicating whether
+// the stack was newly added (true) or already existed (false).
+func (t *Trie[T]) AddStackIfNew(stack []T) (int, bool) {
+	stackID := mkStackID(stack)
 	if stackItem, exists := t.uniqueStacks[stackID]; exists {
-		return stackItem.parentArrayIdx
+		return stackItem.parentArrayIdx, false
 	}
 
+	return t.addStack(stack, stackID), true
+}
+
+func (t *Trie[T]) addStack(stack []T, stackID string) int {
 	parentStackID := t.rootID
 	for i := len(stack) - 1; i >= 0; i-- {
 		stackID = mkStackID(stack[i:])
