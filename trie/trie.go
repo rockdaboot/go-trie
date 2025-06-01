@@ -28,6 +28,16 @@ func New() *Trie {
 	return &trie
 }
 
+func NewFromStacks(stacks [][]string) *Trie {
+	trie := New()
+	for _, stack := range stacks {
+		// Add the stack trace to the trie.
+		// The leaf frame is at position 0, so we add the stack in natural order.
+		trie.AddStack(stack)
+	}
+	return trie
+}
+
 func (t *Trie) Len() int {
 	return len(t.uniqueStacks)
 }
@@ -115,7 +125,7 @@ type stackData struct {
 	locationIdx    int
 }
 
-func buildArrays(stacks [][]string) (locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) {
+func BuildArrays(stacks [][]string) (locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) {
 	uniqueStacks := make(map[string]stackData)
 	uniqueLocations := make(map[string]int)
 
@@ -181,8 +191,8 @@ func mkStackID(stack []string) string {
 	return builder.String()
 }
 
-// buildStacks reconstructs the stacks from the arrays.
-func buildStacks(locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) [][]string {
+// BuildStacks reconstructs the stacks from the arrays.
+func BuildStacks(locationTable []Location, stackParentArray []int, stackLocationIndex []int, stackIndex []int) [][]string {
 	stacks := make([][]string, len(stackIndex))
 	for stackIdx, i := range stackIndex {
 		stack := make([]string, 0)
