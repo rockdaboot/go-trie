@@ -28,21 +28,31 @@ func main() {
 		{"why", "why", "what"},
 	}
 
-	trieData := trie.NewFromStacks(stacks)
+	printStacks(trie.NewFromStacks(stacks).ToArrays())
+	fmt.Println()
 
-	// Convert the trie to arrays.
-	locationTable, stackParentArray, stackLocationIndex, stackIndex := trieData.ToArrays()
+	type frame struct {
+		fileID  uint64
+		address uint64
+	}
+	//nolint:mnd
+	var stacksOfFrames = [][]frame{
+		{{fileID: 1, address: 0x100}, {fileID: 2, address: 0x200}, {fileID: 3, address: 0x300}},
+		{{fileID: 4, address: 0x400}, {fileID: 2, address: 0x200}, {fileID: 3, address: 0x300}},
+	}
+	printStacks(trie.NewFromStacks(stacksOfFrames).ToArrays())
+}
 
-	// Print the arrays
+func printStacks[T comparable](locationTable []T,
+	stackParentArray, stackLocationIndex, stackIndex []int) {
 	fmt.Println("locationTable:", locationTable)
 	fmt.Println("stackParentArray:", stackParentArray)
 	fmt.Println("stackLocationIndex:", stackLocationIndex)
 	fmt.Println("stackIndex:", stackIndex)
 
-	// Print the stacks, demonstrates how to construct the stacks from the arrays.
 	for _, i := range stackIndex {
 		for i != 0 {
-			fmt.Printf(" %s", locationTable[stackLocationIndex[i]])
+			fmt.Printf(" %v", locationTable[stackLocationIndex[i]])
 			i = stackParentArray[i]
 		}
 		fmt.Println()
